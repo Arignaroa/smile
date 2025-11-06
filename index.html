@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>이모지 찾기 — 모바일 단계진행 / 카운트다운 / 카카오톡 공유</title>
+  <title>이모지 찾기 — 모바일 단계진행 / 카운트다운 / 일반 공유</title>
   <style>
     :root { --gap: 8px; --size: 60px; }
     * { box-sizing: border-box; }
@@ -62,15 +62,6 @@
     .ceremony-tile.flip{ transform: scale(1.06); }
 
   </style>
-  <!-- Kakao JavaScript SDK: 도메인과 앱 키를 카카오 개발자 콘솔에 등록해야 합니다. -->
-  <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
-  <script>
-    // 여기에 본인의 자바스크립트 키를 넣어주세요 (예: '0123456789abcdef0123456789abcdef')
-    const KAKAO_APP_KEY = '여기에_카카오_자바스크립트_키';
-    if (window.Kakao && !Kakao.isInitialized()) {
-      try { Kakao.init(KAKAO_APP_KEY); } catch (e) { console.warn('Kakao SDK init 실패:', e); }
-    }
-  </script>
 </head>
 <body>
   <h1>웃는 이모지 한 칸만 찾기 🙂</h1>
@@ -107,7 +98,7 @@
         <pre class="result-pre" id="result-pre"></pre>
       </div>
       <div class="result-actions">
-        <button id="final-share">카카오톡으로 공유</button>
+        <button id="final-share">공유</button>
         <!-- 결과 링크 복사 버튼 제거됨 -->
         <button id="final-restart">다시 도전</button>
         <button id="final-close" aria-label="닫기">닫기</button>
@@ -357,15 +348,19 @@
         const t0 = document.getElementById('timer').textContent;
         setTimeout(()=>{ const t1 = document.getElementById('timer').textContent; console.assert(t0 !== t1, '타이머 증가'); }, 300);
 
+        // 기존 스케일/숨김/포맷 테스트
         scaleCurrentStage();
         const sizeNow = getComputedStyle(document.querySelector('.stage')).getPropertyValue('--size');
         console.assert(!!sizeNow, '--size 가 설정되어야 함');
-
         const footer = document.querySelector('footer');
         console.assert(getComputedStyle(footer).display === 'none', 'footer는 표시되지 않아야 함');
+        console.assert(formatSecs(12345) === '12.35', 'formatSecs(12345) → 12.35');
+        console.assert(formatSecs(0) === '0.00', 'formatSecs(0) → 0.00');
 
-        console.assert(formatSecs(12345) === '12.35', 'formatSecs(12345) → 12.3');
-        console.assert(formatSecs(0) === '0.00', 'formatSecs(0) → 0.0');
+        // 추가 테스트 (신규)
+        console.assert(typeof shareGeneric === 'function', 'shareGeneric 함수가 존재해야 함');
+        console.assert(buildSummaryHtml() === '0.00초', '시작 전에는 0.00초가 표시되어야 함');
+        console.assert(formatSecs(2500) === '2.50', 'formatSecs(2500) → 2.50');
       } catch(e){ console.warn('SelfTests 실패:', e); }
     }
 
@@ -393,42 +388,30 @@
       if(resultEl){ resultEl.style.display = 'flex'; setTimeout(()=>{ finalShareBtn && finalShareBtn.focus(); }, 40); }
     }
 
-    // ===== 카카오톡 공유 =====
-    function shareToKakao(){
+    // ===== 일반 공유 (Web Share API + 클립보드 폴백) =====
+    function shareGeneric(){
       const totalMs = (records.length ? records[records.length-1].clickedAt - runStart : 0) || 0;
       const secs = formatSecs(totalMs);
       const shareUrl = location.href;
+      const payload = { title: '이모지 찾기 결과', text: `최종 기록: ${secs}초`, url: shareUrl };
 
-      if(window.Kakao && Kakao.isInitialized() && Kakao.Share){
-        try {
-          Kakao.Share.sendDefault({
-            objectType: 'feed',
-            content: {
-              title: '이모지 찾기 결과',
-              description: `최종 기록: ${secs}초`,
-              // 작업용 샘플 이미지 — 운영 시 본인 도메인의 공개 이미지 URL로 교체하세요 (80x80 이상)
-              imageUrl: 'https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_medium.png',
-              link: { mobileWebUrl: shareUrl, webUrl: shareUrl }
-            },
-            buttons: [
-              { title: '게임 하러 가기', link: { mobileWebUrl: shareUrl, webUrl: shareUrl } }
-            ]
-          });
-        } catch (e) {
-          console.warn('Kakao.Share 실패:', e);
-          alert('카카오 공유 중 문제가 발생했어요. 앱 키/도메인 설정을 확인해주세요.');
-        }
-      } else if (navigator.share) {
-        // 보조: 카카오 SDK 사용 불가 시, 웹 공유 API로 대체
-        navigator.share({ title: '이모지 찾기 결과', text: `최종 기록: ${secs}초`, url: shareUrl }).catch(()=>{});
+      if (navigator.share) {
+        navigator.share(payload).catch(()=>{ /* 사용자가 취소 */ });
       } else {
-        alert('공유를 지원하지 않는 환경입니다.');
+        const text = `${payload.title}\n${payload.text}\n${payload.url}`;
+        try {
+          navigator.clipboard.writeText(text)
+            .then(()=> alert('공유 내용을 클립보드에 복사했어요.'))
+            .catch(()=> { prompt('아래 내용을 복사하세요:', text); });
+        } catch(e){
+          prompt('아래 내용을 복사하세요:', text);
+        }
       }
     }
 
     // 버튼 동작 바인딩 (오버레이 공유)
     if(finalShareBtn){
-      finalShareBtn.addEventListener('click', shareToKakao);
+      finalShareBtn.addEventListener('click', shareGeneric);
     }
 
     if(finalRestartBtn){
