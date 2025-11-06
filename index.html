@@ -15,8 +15,8 @@
     button[disabled] { opacity: .5; cursor: not-allowed; }
     .stage { margin: 18px auto; max-width: 900px; }
     .stage h2 { margin: 8px 0; }
-    .grid { display: inline-grid; gap: var(--gap); margin-top: 8px; }
-    .cell { width: var(--size); height: var(--size); display: flex; align-items: center; justify-content: center; text-align: center; padding: 0; font-size: 38px; line-height: 1; border: 1px solid #ddd; border-radius: 14px; user-select: none; transition: transform .06s; touch-action: manipulation; }
+    .grid { display: inline-grid; gap: var(--gap); margin-top: 8px; width: 100%; }
+    .cell { width: var(--size); height: var(--size); display: flex; align-items: center; justify-content: center; text-align: center; padding: 0; font-size: calc(var(--size) * 0.66); line-height: 1; border: 1px solid #ddd; border-radius: 14px; user-select: none; transition: transform .06s; touch-action: manipulation; }
     .cell:active { transform: scale(.98); }
     .note { font-size: .9rem; color: #666; margin-top: 6px; }
     .status { margin-top: 14px; font-size: .95rem; color: #333; min-height: 24px; }
@@ -36,6 +36,12 @@
     /* 오답 시 흔들림 효과 */
     @keyframes shake { 0%{transform: translateX(0);} 25%{transform: translateX(-5px);} 50%{transform: translateX(5px);} 75%{transform: translateX(-3px);} 100%{transform: translateX(0);} }
     .shake { animation: shake .28s ease both; }
+
+    /* ✅ 모바일: 기록 로그 완전 숨김 + 하단 패딩 축소 */
+    @media (max-width: 600px){
+      footer{ display: none !important; }
+      body{ padding-bottom: 24px; }
+    }
 
     @media (max-width: 400px){ :root{ --size: 56px; } #countdown span{ font-size: 56px; } }
   </style>
@@ -141,12 +147,26 @@
     function fmtLocalWithMs(ts){ const d = new Date(ts); const pad = n=>String(n).padStart(2,'0'); const y=d.getFullYear(), m=pad(d.getMonth()+1), da=pad(d.getDate()); const h=pad(d.getHours()), mi=pad(d.getMinutes()), s=pad(d.getSeconds()); const ms=String(d.getMilliseconds()).padStart(3,'0'); return `${y}-${m}-${da} ${h}:${mi}:${s}.${ms}`; }
 
     function writeLog(){
-      if(runStart===null){ logEl.textContent = ''; return; }
+      if(runStart===null){ if(logEl) logEl.textContent = ''; return; }
       const head = `시드: ${seedParam}\n시작: ${fmtLocalWithMs(runStart)} (ISO: ${new Date(runStart).toISOString()})`;
       const lines = records.map(r=>`- ${r.stage} — 클릭: ${fmtLocalWithMs(r.clickedAt)} (ISO: ${r.clickedAtIso}), 소요: ${r.durationMs}ms, 그리드 ${r.grid}칸`);
       let tail = '';
       if(records.length === STAGES.length){ const end = records[records.length-1].clickedAt; tail = `\n완료: ${fmtLocalWithMs(end)} (ISO: ${new Date(end).toISOString()})\n총 소요: ${end - runStart}ms`; }
-      logEl.textContent = [head, ...lines, tail].filter(Boolean).join('\n');
+      if(logEl) logEl.textContent = [head, ...lines, tail].filter(Boolean).join('\n');
+    }
+
+    // ===== 반응형 스케일링: 현재 스테이지 그리드를 화면폭에 맞춤 =====
+    function scaleCurrentStage(){
+      const stage = document.querySelector('.stage');
+      if(!stage) return;
+      const idx = parseInt(stage.dataset.index, 10) || 0;
+      const n = STAGES[idx]?.n || 3;
+      const cs = getComputedStyle(document.documentElement);
+      const gap = parseFloat(cs.getPropertyValue('--gap')) || 8;
+      // 스테이지 컨테이너의 실제 표시 폭을 기준으로 계산
+      const wrapWidth = stage.clientWidth || stagesEl.clientWidth || (window.innerWidth - 32);
+      const size = Math.max(36, Math.floor((wrapWidth - gap * (n - 1)) / n));
+      stage.style.setProperty('--size', size + 'px');
     }
 
     // ===== 스테이지 렌더 (버그 방지: 원자적 교체 + 재진입 가드) =====
@@ -162,7 +182,7 @@
         // DOM 구성 (가상 컨테이너에 먼저 구성한 뒤 교체)
         const stageWrap = document.createElement('div'); stageWrap.className = 'stage'; stageWrap.dataset.index = idx;
         const h2 = document.createElement('h2'); h2.textContent = label;
-        const grid = document.createElement('div'); grid.className = 'grid'; grid.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+        const grid = document.createElement('div'); grid.className = 'grid'; grid.style.gridTemplateColumns = `repeat(${n}, 1fr)`; grid.style.width = '100%';
 
         for(let i=0;i<total;i++){
           const cell = document.createElement('button');
@@ -195,7 +215,6 @@
             } else {
               statusEl.innerHTML = `<span class=\"ok\">축하합니다! 모든 스테이지를 완료했습니다.</span>`;
               btnShare.disabled = false; btnCopy.disabled = false; stopTimer();
-              logEl.parentElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
           });
           grid.appendChild(cell);
@@ -209,6 +228,9 @@
         // 기존 컨텐츠를 원자적으로 교체 → 렌더 중간에 빈 화면 방지
         stagesEl.replaceChildren(stageWrap);
         stageWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // ✅ 렌더 직후 현재 스테이지를 화면폭에 맞춰 자동 스케일
+        scaleCurrentStage();
 
         // 진행 표시 및 뒤로가기 보호: 뒤로가면 완전 리셋
         history.pushState({emoji:'v1', stage: idx}, '');
@@ -245,6 +267,14 @@
           startTimer(); writeLog(); spawnStage(0);
           btnRestart.disabled = false; // 시작 후 재시작 가능
 
+          // 반응형 스케일: 리사이즈/회전 변화를 따라 즉시 업데이트
+          if(!window._emojiScaleHandlerInstalled){
+            const onResize = () => scaleCurrentStage();
+            window.addEventListener('resize', onResize, { passive: true });
+            window.addEventListener('orientationchange', () => setTimeout(onResize, 120), { passive: true });
+            window._emojiScaleHandlerInstalled = true;
+          }
+
           // ===== 콘솔 진단 테스트 (UI 없음) =====
           setTimeout(runSelfTests, 350);
         }
@@ -263,7 +293,7 @@
       const u = new URL(location.href); u.searchParams.set('seed', newSeed); location.href = u.toString();
     });
 
-    async function makeShareText(){ const title = '이모지 찾기 결과'; const text = logEl.textContent.trim(); const shareUrl = new URL(location.href); return { title, text, url: shareUrl.toString() }; }
+    async function makeShareText(){ const title = '이모지 찾기 결과'; const text = (logEl ? logEl.textContent.trim() : '').trim(); const shareUrl = new URL(location.href); return { title, text, url: shareUrl.toString() }; }
 
     btnShare.addEventListener('click', async ()=>{
       const payload = await makeShareText();
