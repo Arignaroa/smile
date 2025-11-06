@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>이모지 찾기 — 모바일 단계진행 / 카운트다운 / 랜덤 방해 이모지</title>
+  <title>이모지 찾기 — 모바일 단계진행 / 카운트다운 / 카카오톡 공유</title>
   <style>
     :root { --gap: 8px; --size: 60px; }
     * { box-sizing: border-box; }
@@ -62,6 +62,15 @@
     .ceremony-tile.flip{ transform: scale(1.06); }
 
   </style>
+  <!-- Kakao JavaScript SDK: 도메인과 앱 키를 카카오 개발자 콘솔에 등록해야 합니다. -->
+  <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
+  <script>
+    // 여기에 본인의 자바스크립트 키를 넣어주세요 (예: '0123456789abcdef0123456789abcdef')
+    const KAKAO_APP_KEY = '여기에_카카오_자바스크립트_키';
+    if (window.Kakao && !Kakao.isInitialized()) {
+      try { Kakao.init(KAKAO_APP_KEY); } catch (e) { console.warn('Kakao SDK init 실패:', e); }
+    }
+  </script>
 </head>
 <body>
   <h1>웃는 이모지 한 칸만 찾기 🙂</h1>
@@ -81,7 +90,7 @@
   <div class="toolbar">
     <button id="btn-start">시작</button>
     <button id="btn-restart" disabled>새로 시작(섞기)</button>
-    <button id="btn-copy" disabled>결과 링크 복사</button>
+    <!-- 결과 링크 복사 버튼 제거됨 -->
   </div>
 
   <section id="stages"></section>
@@ -98,8 +107,8 @@
         <pre class="result-pre" id="result-pre"></pre>
       </div>
       <div class="result-actions">
-        <button id="final-share">결과 공유</button>
-        <button id="final-copy">결과 링크 복사</button>
+        <button id="final-share">카카오톡으로 공유</button>
+        <!-- 결과 링크 복사 버튼 제거됨 -->
         <button id="final-restart">다시 도전</button>
         <button id="final-close" aria-label="닫기">닫기</button>
       </div>
@@ -155,7 +164,6 @@
     const logEl = document.getElementById('log');
     const btnStart = document.getElementById('btn-start');
     const btnRestart = document.getElementById('btn-restart');
-    const btnCopy = document.getElementById('btn-copy');
     const timerEl = document.getElementById('timer');
     const countdownEl = document.getElementById('countdown');
     const countdownNumEl = countdownEl.querySelector('span');
@@ -169,7 +177,6 @@
     const resultPre = document.getElementById('result-pre');
     const resultSummaryEl = document.getElementById('result-summary');
     const finalShareBtn = document.getElementById('final-share');
-    const finalCopyBtn = document.getElementById('final-copy');
     const finalRestartBtn = document.getElementById('final-restart');
     const finalCloseBtn = document.getElementById('final-close');
 
@@ -219,7 +226,7 @@
       stage.style.setProperty('--size', size + 'px');
     }
 
-    // ===== 스테이지 렌더 (버그 방지: 원자적 교체 + 재진입 가드) =====
+    // ===== 스테이지 렌더 =====
     function renderStage(idx){
       if(idx < 0 || idx >= STAGES.length) return;
       if(renderStage._busy) return; // 재진입 방지
@@ -229,7 +236,6 @@
         const total = n*n; const answer = answers[idx];
         const ratioAngry = distractorRatios[idx];
 
-        // DOM 구성 (가상 컨테이너에 먼저 구성한 뒤 교체)
         const stageWrap = document.createElement('div'); stageWrap.className = 'stage'; stageWrap.dataset.index = idx;
         const h2 = document.createElement('h2'); h2.textContent = label;
         const grid = document.createElement('div'); grid.className = 'grid'; grid.style.gridTemplateColumns = `repeat(${n}, 1fr)`; grid.style.width = '100%';
@@ -245,7 +251,6 @@
           }
           cell.addEventListener('click', ()=>{
             if(i!==answer){
-              // 오답: 잠깐 흔들림
               cell.classList.add('shake'); cell.disabled = true;
               setTimeout(()=>{ cell.classList.remove('shake'); cell.disabled = false; }, 300);
               statusEl.innerHTML = `<span class="err">오답! 다시 시도하세요.</span>`;
@@ -264,7 +269,7 @@
             } else {
               stopTimer();
               statusEl.innerHTML = `<span class=\"ok\">축하합니다! 모든 스테이지를 완료했습니다.</span> 기록을 확인하고 공유해보세요.`;
-              btnCopy.disabled = false; runCeremonyInStageThenAwaitClick();
+              runCeremonyInStageThenAwaitClick();
             }
           });
           grid.appendChild(cell);
@@ -275,14 +280,9 @@
 
         stageWrap.appendChild(h2); stageWrap.appendChild(grid); stageWrap.appendChild(note);
 
-        // 기존 컨텐츠를 원자적으로 교체 → 렌더 중간에 빈 화면 방지
         stagesEl.replaceChildren(stageWrap);
         stageWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-        // 렌더 직후 현재 스테이지를 화면폭에 맞춰 자동 스케일
         scaleCurrentStage();
-
-        // 진행 표시 및 뒤로가기 보호: 뒤로가면 완전 리셋
         history.pushState({emoji:'v1', stage: idx}, '');
       } finally {
         renderStage._busy = false;
@@ -296,7 +296,7 @@
       let n = 3;
       countdownNumEl.textContent = String(n);
       countdownEl.style.display = 'flex';
-      btnStart.disabled = true; btnRestart.disabled = true; btnCopy.disabled = true;
+      btnStart.disabled = true; btnRestart.disabled = true;
       const iv = setInterval(()=>{
         n--;
         if(n>0){ countdownNumEl.textContent = String(n); }
@@ -304,7 +304,6 @@
         else {
           clearInterval(iv);
           countdownEl.style.display = 'none';
-          // 히스토리 가드 세팅(뒤로가기=완전 리셋)
           history.replaceState({emoji:'v1', stage: 'init'}, '');
           history.pushState({emoji:'v1', guard:true}, '');
           window.addEventListener('popstate', ()=>{
@@ -317,7 +316,6 @@
           startTimer(); writeLog(); spawnStage(0);
           btnRestart.disabled = false; // 시작 후 재시작 가능
 
-          // 반응형 스케일: 리사이즈/회전 변화를 따라 즉시 업데이트
           if(!window._emojiScaleHandlerInstalled){
             const onResize = () => scaleCurrentStage();
             window.addEventListener('resize', onResize, { passive: true });
@@ -325,13 +323,12 @@
             window._emojiScaleHandlerInstalled = true;
           }
 
-          // ===== 콘솔 진단 테스트 (UI 없음) =====
           setTimeout(runSelfTests, 350);
         }
       }, 1000);
     }
 
-    // ===== 시작/재시작/복사 =====
+    // ===== 시작/재시작 =====
     btnStart.addEventListener('click', ()=>{
       if(runStart!==null) return; // 이미 시작됨
       runCountdownThenStart();
@@ -342,19 +339,6 @@
       const newSeed = rand.toString(36);
       const u = new URL(location.href); u.searchParams.set('seed', newSeed); location.href = u.toString();
     });
-
-    btnCopy.addEventListener('click', async ()=>{
-      try { await navigator.clipboard.writeText(location.href); btnCopy.textContent = '복사됨!'; setTimeout(()=>btnCopy.textContent='결과 링크 복사', 1400); }
-      catch(e){ prompt('클립보드 접근이 제한되어 수동 복사를 사용합니다. 아래 링크 전체를 복사하세요:', location.href); }
-    });
-
-    // 오버레이: 결과 링크 복사 버튼도 동일 동작
-    if(finalCopyBtn){
-      finalCopyBtn.addEventListener('click', async ()=>{
-        try{ await navigator.clipboard.writeText(location.href); finalCopyBtn.textContent = '복사됨!'; setTimeout(()=>finalCopyBtn.textContent='결과 링크 복사', 1200); }
-        catch(e){ prompt('아래 링크 전체를 복사하세요:', location.href); }
-      });
-    }
 
     // ===== 콘솔용 간단 + 추가 테스트 =====
     function runSelfTests(){
@@ -373,16 +357,13 @@
         const t0 = document.getElementById('timer').textContent;
         setTimeout(()=>{ const t1 = document.getElementById('timer').textContent; console.assert(t0 !== t1, '타이머 증가'); }, 300);
 
-        // 추가 테스트: 스케일 계산이 적용되는지 확인
         scaleCurrentStage();
         const sizeNow = getComputedStyle(document.querySelector('.stage')).getPropertyValue('--size');
         console.assert(!!sizeNow, '--size 가 설정되어야 함');
 
-        // 추가 테스트: 로그 숨김 확인
         const footer = document.querySelector('footer');
         console.assert(getComputedStyle(footer).display === 'none', 'footer는 표시되지 않아야 함');
 
-        // 추가 테스트: 포맷 함수 동작 검증
         console.assert(formatSecs(12345) === '12.35', 'formatSecs(12345) → 12.3');
         console.assert(formatSecs(0) === '0.00', 'formatSecs(0) → 0.0');
       } catch(e){ console.warn('SelfTests 실패:', e); }
@@ -407,26 +388,47 @@
     }
 
     function showResult(){
-      // 간결 표시: 최종 초만 출력
       if(resultSummaryEl) resultSummaryEl.textContent = buildSummaryHtml();
       if(resultPre) resultPre.style.display = 'none';
-      if(resultEl){ resultEl.style.display = 'flex'; setTimeout(()=>{ finalCopyBtn && finalCopyBtn.focus(); }, 40); }
+      if(resultEl){ resultEl.style.display = 'flex'; setTimeout(()=>{ finalShareBtn && finalShareBtn.focus(); }, 40); }
+    }
+
+    // ===== 카카오톡 공유 =====
+    function shareToKakao(){
+      const totalMs = (records.length ? records[records.length-1].clickedAt - runStart : 0) || 0;
+      const secs = formatSecs(totalMs);
+      const shareUrl = location.href;
+
+      if(window.Kakao && Kakao.isInitialized() && Kakao.Share){
+        try {
+          Kakao.Share.sendDefault({
+            objectType: 'feed',
+            content: {
+              title: '이모지 찾기 결과',
+              description: `최종 기록: ${secs}초`,
+              // 작업용 샘플 이미지 — 운영 시 본인 도메인의 공개 이미지 URL로 교체하세요 (80x80 이상)
+              imageUrl: 'https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_medium.png',
+              link: { mobileWebUrl: shareUrl, webUrl: shareUrl }
+            },
+            buttons: [
+              { title: '게임 하러 가기', link: { mobileWebUrl: shareUrl, webUrl: shareUrl } }
+            ]
+          });
+        } catch (e) {
+          console.warn('Kakao.Share 실패:', e);
+          alert('카카오 공유 중 문제가 발생했어요. 앱 키/도메인 설정을 확인해주세요.');
+        }
+      } else if (navigator.share) {
+        // 보조: 카카오 SDK 사용 불가 시, 웹 공유 API로 대체
+        navigator.share({ title: '이모지 찾기 결과', text: `최종 기록: ${secs}초`, url: shareUrl }).catch(()=>{});
+      } else {
+        alert('공유를 지원하지 않는 환경입니다.');
+      }
     }
 
     // 버튼 동작 바인딩 (오버레이 공유)
     if(finalShareBtn){
-      finalShareBtn.addEventListener('click', async ()=>{
-        const totalMs = (records.length ? records[records.length-1].clickedAt - runStart : 0) || 0;
-        const secs = formatSecs(totalMs);
-        const payload = { title: '이모지 찾기 결과', text: `최종 기록: ${secs}초`, url: location.href };
-        if(navigator.share){
-          try { await navigator.share(payload); }
-          catch(e){ alert('공유가 취소되었거나 실패했습니다.'); }
-        } else {
-          try { await navigator.clipboard.writeText(`${payload.text}\n${payload.url}`); alert('최종 초와 링크를 클립보드에 복사했어요.'); }
-          catch(e){ prompt('아래 내용을 복사하세요:', `${payload.text}\n${payload.url}`); }
-        }
-      });
+      finalShareBtn.addEventListener('click', shareToKakao);
     }
 
     if(finalRestartBtn){
@@ -437,12 +439,12 @@
       finalCloseBtn.addEventListener('click', ()=>{ if(resultEl) resultEl.style.display = 'none'; });
       window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && resultEl && resultEl.style.display==='flex'){ resultEl.style.display='none'; } });
     }
+
     // ===== 세레모니 유틸: 컨테이너에 7x7 생성 및 애니메이션 =====
     function buildCeremonyGrid(container){
       const N = 7; const total = N*N;
       const grid = document.createElement('div');
       grid.className = 'ceremony-grid';
-      // 스케일 계산: 스테이지 폭에 맞춰 --size 설정
       const cs = getComputedStyle(document.documentElement);
       const gap = parseFloat(cs.getPropertyValue('--gap')) || 8;
       const wrapWidth = (container.clientWidth || stagesEl.clientWidth || (window.innerWidth - 32));
@@ -458,7 +460,6 @@
       }
       container.appendChild(grid);
 
-      // 스태거 뒤집기
       [...grid.children].forEach((tile, idx)=>{
         const delay = 20 * idx; // 0.02s 간격
         setTimeout(()=>{ tile.classList.add('flip'); tile.textContent = EMOJI_CELEB; }, delay);
@@ -467,7 +468,6 @@
     }
 
     function runCeremonyInStageThenAwaitClick(){
-      // 스테이지 영역을 세레모니로 대체
       const stageWrap = document.createElement('div');
       stageWrap.className = 'stage';
       stageWrap.dataset.index = STAGES.length - 1;
@@ -477,15 +477,12 @@
 
       const grid = buildCeremonyGrid(stageWrap);
 
-      // 사용자 클릭 전까지 유지 → 첫 클릭 시 결과 표시
       const onFirstClick = ()=>{
         window.removeEventListener('click', onFirstClick, true);
         showResult();
       };
-      // 캡처 단계에서 잡아 확실히 1회만 처리
       window.addEventListener('click', onFirstClick, true);
 
-      // 화면 회전/리사이즈 시 크기 재계산
       const onResize = ()=>{
         const cs = getComputedStyle(document.documentElement);
         const gap = parseFloat(cs.getPropertyValue('--gap')) || 8;
