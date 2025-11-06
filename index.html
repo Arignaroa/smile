@@ -361,6 +361,8 @@
         console.assert(typeof shareGeneric === 'function', 'shareGeneric 함수가 존재해야 함');
         console.assert(buildSummaryHtml() === '0.00초', '시작 전에는 0.00초가 표시되어야 함');
         console.assert(formatSecs(2500) === '2.50', 'formatSecs(2500) → 2.50');
+        console.assert(typeof buildShareUrl === 'function', 'buildShareUrl 함수가 존재해야 함');
+        console.assert(!buildShareUrl().includes('seed='), '공유 URL에는 seed 파라미터가 없어야 함');
       } catch(e){ console.warn('SelfTests 실패:', e); }
     }
 
@@ -389,10 +391,15 @@
     }
 
     // ===== 일반 공유 (Web Share API + 클립보드 폴백) =====
+    function buildShareUrl(){
+      const u = new URL(location.href);
+      u.searchParams.delete('seed');
+      return u.toString();
+    }
     function shareGeneric(){
       const totalMs = (records.length ? records[records.length-1].clickedAt - runStart : 0) || 0;
       const secs = formatSecs(totalMs);
-      const shareUrl = location.href;
+      const shareUrl = buildShareUrl();
       const payload = { title: '이모지 찾기 결과', text: `최종 기록: ${secs}초`, url: shareUrl };
 
       if (navigator.share) {
