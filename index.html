@@ -7,7 +7,7 @@
   <style>
     :root { --gap: 8px; --size: 60px; }
     * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; margin: 0; padding: 56px 16px 128px; text-align: center; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; margin: 0; padding: 56px 16px 24px; text-align: center; }
     h1 { margin: 0 0 6px; font-size: 1.6rem; }
     p.lead { margin: 0 0 18px; color: #444; }
     .toolbar { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
@@ -22,10 +22,11 @@
     .status { margin-top: 14px; font-size: .95rem; color: #333; min-height: 24px; }
     .ok { color: #087443; font-weight: 700; }
     .err { color: #b00020; font-weight: 700; }
-    footer { position: fixed; left: 0; right: 0; bottom: 0; background: #fafafa; border-top: 1px solid #eee; padding: 10px 16px; }
-    .log { max-width: 980px; margin: 0 auto; text-align: left; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
 
-    /* 오른쪽 상단 HUD 타이머 — 20% 확대 */
+    /* 기록 로그 전면 비표시 */
+    footer, .log { display: none !important; }
+
+    /* HUD 타이머 */
     #hud { position: fixed; top: 8px; right: 8px; z-index: 10; background: rgba(255,255,255,.85); backdrop-filter: blur(6px); border: 1px solid #eee; border-radius: 12px; padding: 6px 10px; display: flex; align-items: center; gap: 10px; }
     #timer { font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: .4px; font-size: 1.2em; }
 
@@ -37,18 +38,34 @@
     @keyframes shake { 0%{transform: translateX(0);} 25%{transform: translateX(-5px);} 50%{transform: translateX(5px);} 75%{transform: translateX(-3px);} 100%{transform: translateX(0);} }
     .shake { animation: shake .28s ease both; }
 
-    /* ✅ 모바일: 기록 로그 완전 숨김 + 하단 패딩 축소 */
-    @media (max-width: 600px){
-      footer{ display: none !important; }
-      body{ padding-bottom: 24px; }
-    }
-
     @media (max-width: 400px){ :root{ --size: 56px; } #countdown span{ font-size: 56px; } }
+
+    /* 최종 결과 오버레이 */
+    #result{ position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.5); z-index: 40; padding: 20px; }
+    #result .result-card{ background: #fff; border: 1px solid #eee; border-radius: 16px; max-width: 680px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,.15); text-align: left; }
+    #result .result-card header{ padding: 16px 18px; border-bottom: 1px solid #f0f0f0; }
+    #result .result-card header h2{ margin: 0; font-size: 1.4rem; }
+    #result .result-body{ padding: 16px 18px; }
+    #result .result-summary{ font-size: 2.2rem; font-weight: 900; margin-bottom: 10px; text-align: center; }
+    #result .result-pre{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; white-space: pre-wrap; background: #fafafa; border: 1px solid #eee; border-radius: 12px; padding: 12px; max-height: 45vh; overflow: auto; }
+    #result .result-actions{ display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 18px 18px; border-top: 1px solid #f0f0f0; }
+    #result .result-actions button{ flex: 1 1 auto; }
+      /* 세레모니 오버레이 */
+    #ceremony{ position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.5); z-index: 35; padding: 20px; }
+    #ceremony .tiles{ display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    #ceremony .tile{ width: 44px; height: 44px; border-radius: 10px; display:flex; align-items:center; justify-content:center; font-size: 28px; background:#fff; border:1px solid #eee; transition: transform .25s ease, background-color .25s ease, color .25s ease; }
+    #ceremony .tile.flip{ transform: scale(1.06); }
+    @media (max-width: 400px){ #ceremony .tile{ width: 36px; height: 36px; font-size: 22px; }}
+      /* 세레모니: 스테이지 대체형 */
+    .ceremony-grid{ display: grid; gap: var(--gap); grid-template-columns: repeat(7, 1fr); margin: 12px auto 0; width: 100%; }
+    .ceremony-tile{ width: var(--size); height: var(--size); display:flex; align-items:center; justify-content:center; font-size: calc(var(--size) * 0.66); background:#fff; border:1px solid #eee; border-radius:14px; transition: transform .25s ease; }
+    .ceremony-tile.flip{ transform: scale(1.06); }
+
   </style>
 </head>
 <body>
-  <h1>웃는 이모지 한 칸만 찾기 😊</h1>
-  <p class="lead">규칙: 각 스테이지 그리드에서 <strong>단 1칸의 😊</strong>를 찾으세요. 나머지는 <strong>노란 화남(😠)과 무표정(😐)</strong>이 무작위 비율로 섞여 있습니다.</p>
+  <h1>웃는 이모지 한 칸만 찾기 🙂</h1>
+  <p class="lead">규칙: 각 스테이지 그리드에서 <strong>단 1칸의 🙂</strong>를 찾으세요. 나머지는 <strong>노란 화남(😠)과 무표정(😐)</strong>이 무작위 비율로 섞여 있습니다.</p>
 
   <div id="hud" aria-live="polite" aria-label="진행 HUD">
     <span>경과</span>
@@ -57,16 +74,37 @@
 
   <div id="countdown"><span>3</span></div>
 
+  <div id="ceremony" aria-hidden="true">
+    <div class="tiles" id="ceremony-tiles"></div>
+  </div>
+
   <div class="toolbar">
     <button id="btn-start">시작</button>
     <button id="btn-restart" disabled>새로 시작(섞기)</button>
-    <button id="btn-share" disabled>결과 공유</button>
     <button id="btn-copy" disabled>결과 링크 복사</button>
   </div>
 
   <section id="stages"></section>
 
   <div class="status" id="status">시작 버튼을 눌러주세요.</div>
+
+  <div id="result" role="dialog" aria-modal="true" aria-labelledby="result-title" aria-describedby="result-pre" style="display:none;">
+    <div class="result-card">
+      <header>
+        <h2 id="result-title">최종 기록</h2>
+      </header>
+      <div class="result-body">
+        <div class="result-summary" id="result-summary"></div>
+        <pre class="result-pre" id="result-pre"></pre>
+      </div>
+      <div class="result-actions">
+        <button id="final-share">결과 공유</button>
+        <button id="final-copy">결과 링크 복사</button>
+        <button id="final-restart">다시 도전</button>
+        <button id="final-close" aria-label="닫기">닫기</button>
+      </div>
+    </div>
+  </div>
 
   <footer>
     <div class="log" id="log" aria-live="polite"></div>
@@ -85,6 +123,7 @@
     const EMOJI_ANGRY = '😠'; // 노란색 화남
     const EMOJI_NEUTRAL = '😐';
     const EMOJI_SMILE = '🙂'; // 빨간/분홍 볼터치 없는 미소
+    const EMOJI_CELEB = '😊'; // 세레모니 타일 이모지
 
     // ===== 시드 난수 (재현성 + 공유 링크) =====
     function mulberry32(a){
@@ -116,11 +155,23 @@
     const logEl = document.getElementById('log');
     const btnStart = document.getElementById('btn-start');
     const btnRestart = document.getElementById('btn-restart');
-    const btnShare = document.getElementById('btn-share');
     const btnCopy = document.getElementById('btn-copy');
     const timerEl = document.getElementById('timer');
     const countdownEl = document.getElementById('countdown');
     const countdownNumEl = countdownEl.querySelector('span');
+
+    // 세레모니 요소
+    const ceremonyEl = document.getElementById('ceremony');
+    const ceremonyTilesEl = document.getElementById('ceremony-tiles');
+
+    // 최종 결과 오버레이 요소
+    const resultEl = document.getElementById('result');
+    const resultPre = document.getElementById('result-pre');
+    const resultSummaryEl = document.getElementById('result-summary');
+    const finalShareBtn = document.getElementById('final-share');
+    const finalCopyBtn = document.getElementById('final-copy');
+    const finalRestartBtn = document.getElementById('final-restart');
+    const finalCloseBtn = document.getElementById('final-close');
 
     // 기록 구조
     let runStart = null; // 시작 버튼을 누른 순간으로 설정
@@ -163,7 +214,6 @@
       const n = STAGES[idx]?.n || 3;
       const cs = getComputedStyle(document.documentElement);
       const gap = parseFloat(cs.getPropertyValue('--gap')) || 8;
-      // 스테이지 컨테이너의 실제 표시 폭을 기준으로 계산
       const wrapWidth = stage.clientWidth || stagesEl.clientWidth || (window.innerWidth - 32);
       const size = Math.max(36, Math.floor((wrapWidth - gap * (n - 1)) / n));
       stage.style.setProperty('--size', size + 'px');
@@ -191,7 +241,6 @@
           if(i===answer){
             cell.textContent = EMOJI_SMILE;
           } else {
-            // 비정답: 비율에 따라 😠/😐 섞기 (시드 기반)
             cell.textContent = (rng() < ratioAngry) ? EMOJI_ANGRY : EMOJI_NEUTRAL;
           }
           cell.addEventListener('click', ()=>{
@@ -213,8 +262,9 @@
             if(currentStage < STAGES.length){
               spawnStage(currentStage);
             } else {
-              statusEl.innerHTML = `<span class=\"ok\">축하합니다! 모든 스테이지를 완료했습니다.</span>`;
-              btnShare.disabled = false; btnCopy.disabled = false; stopTimer();
+              stopTimer();
+              statusEl.innerHTML = `<span class=\"ok\">축하합니다! 모든 스테이지를 완료했습니다.</span> 기록을 확인하고 공유해보세요.`;
+              btnCopy.disabled = false; runCeremonyInStageThenAwaitClick();
             }
           });
           grid.appendChild(cell);
@@ -229,7 +279,7 @@
         stagesEl.replaceChildren(stageWrap);
         stageWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-        // ✅ 렌더 직후 현재 스테이지를 화면폭에 맞춰 자동 스케일
+        // 렌더 직후 현재 스테이지를 화면폭에 맞춰 자동 스케일
         scaleCurrentStage();
 
         // 진행 표시 및 뒤로가기 보호: 뒤로가면 완전 리셋
@@ -246,7 +296,7 @@
       let n = 3;
       countdownNumEl.textContent = String(n);
       countdownEl.style.display = 'flex';
-      btnStart.disabled = true; btnRestart.disabled = true; btnShare.disabled = true; btnCopy.disabled = true;
+      btnStart.disabled = true; btnRestart.disabled = true; btnCopy.disabled = true;
       const iv = setInterval(()=>{
         n--;
         if(n>0){ countdownNumEl.textContent = String(n); }
@@ -281,7 +331,7 @@
       }, 1000);
     }
 
-    // ===== 시작/재시작/공유 =====
+    // ===== 시작/재시작/복사 =====
     btnStart.addEventListener('click', ()=>{
       if(runStart!==null) return; // 이미 시작됨
       runCountdownThenStart();
@@ -293,20 +343,20 @@
       const u = new URL(location.href); u.searchParams.set('seed', newSeed); location.href = u.toString();
     });
 
-    async function makeShareText(){ const title = '이모지 찾기 결과'; const text = (logEl ? logEl.textContent.trim() : '').trim(); const shareUrl = new URL(location.href); return { title, text, url: shareUrl.toString() }; }
-
-    btnShare.addEventListener('click', async ()=>{
-      const payload = await makeShareText();
-      if(navigator.share){ try { await navigator.share(payload); } catch(e){ alert('공유가 취소되었거나 실패했습니다.'); } }
-      else { alert('이 브라우저는 시스템 공유를 지원하지 않습니다. "결과 링크 복사"를 사용하세요.'); }
-    });
-
     btnCopy.addEventListener('click', async ()=>{
       try { await navigator.clipboard.writeText(location.href); btnCopy.textContent = '복사됨!'; setTimeout(()=>btnCopy.textContent='결과 링크 복사', 1400); }
       catch(e){ prompt('클립보드 접근이 제한되어 수동 복사를 사용합니다. 아래 링크 전체를 복사하세요:', location.href); }
     });
 
-    // ===== 콘솔용 간단 테스트 (UI X) =====
+    // 오버레이: 결과 링크 복사 버튼도 동일 동작
+    if(finalCopyBtn){
+      finalCopyBtn.addEventListener('click', async ()=>{
+        try{ await navigator.clipboard.writeText(location.href); finalCopyBtn.textContent = '복사됨!'; setTimeout(()=>finalCopyBtn.textContent='결과 링크 복사', 1200); }
+        catch(e){ prompt('아래 링크 전체를 복사하세요:', location.href); }
+      });
+    }
+
+    // ===== 콘솔용 간단 + 추가 테스트 =====
     function runSelfTests(){
       try {
         console.assert(Array.isArray(STAGES) && STAGES.length === 5, 'STAGES 길이=5');
@@ -322,8 +372,142 @@
         console.assert(others.every(c=>c.textContent===EMOJI_ANGRY || c.textContent===EMOJI_NEUTRAL), '나머지 😠/😐');
         const t0 = document.getElementById('timer').textContent;
         setTimeout(()=>{ const t1 = document.getElementById('timer').textContent; console.assert(t0 !== t1, '타이머 증가'); }, 300);
+
+        // 추가 테스트: 스케일 계산이 적용되는지 확인
+        scaleCurrentStage();
+        const sizeNow = getComputedStyle(document.querySelector('.stage')).getPropertyValue('--size');
+        console.assert(!!sizeNow, '--size 가 설정되어야 함');
+
+        // 추가 테스트: 로그 숨김 확인
+        const footer = document.querySelector('footer');
+        console.assert(getComputedStyle(footer).display === 'none', 'footer는 표시되지 않아야 함');
+
+        // 추가 테스트: 포맷 함수 동작 검증
+        console.assert(formatSecs(12345) === '12.35', 'formatSecs(12345) → 12.3');
+        console.assert(formatSecs(0) === '0.00', 'formatSecs(0) → 0.0');
       } catch(e){ console.warn('SelfTests 실패:', e); }
     }
+
+    // ===== 최종 결과 생성 및 표시 =====
+    function formatSecs(totalMs){ return (Math.max(0, totalMs)/1000).toFixed(2); }
+
+    function buildLogText(){
+      if(runStart===null) return '';
+      const head = `시드: ${seedParam}\n시작: ${fmtLocalWithMs(runStart)} (ISO: ${new Date(runStart).toISOString()})`;
+      const lines = records.map(r=>`- ${r.stage} — 클릭: ${fmtLocalWithMs(r.clickedAt)} (ISO: ${r.clickedAtIso}), 소요: ${r.durationMs}ms, 그리드 ${r.grid}칸`);
+      let tail = '';
+      if(records.length === STAGES.length){ const end = records[records.length-1].clickedAt; tail = `\n완료: ${fmtLocalWithMs(end)} (ISO: ${new Date(end).toISOString()})\n총 소요: ${end - runStart}ms`; }
+      return [head, ...lines, tail].filter(Boolean).join('\n');
+    }
+
+    function buildSummaryHtml(){
+      const totalMs = (records.length ? records[records.length-1].clickedAt - runStart : 0) || 0;
+      const secs = formatSecs(totalMs);
+      return `${secs}초`;
+    }
+
+    function showResult(){
+      // 간결 표시: 최종 초만 출력
+      if(resultSummaryEl) resultSummaryEl.textContent = buildSummaryHtml();
+      if(resultPre) resultPre.style.display = 'none';
+      if(resultEl){ resultEl.style.display = 'flex'; setTimeout(()=>{ finalCopyBtn && finalCopyBtn.focus(); }, 40); }
+    }
+
+    // 버튼 동작 바인딩 (오버레이 공유)
+    if(finalShareBtn){
+      finalShareBtn.addEventListener('click', async ()=>{
+        const totalMs = (records.length ? records[records.length-1].clickedAt - runStart : 0) || 0;
+        const secs = formatSecs(totalMs);
+        const payload = { title: '이모지 찾기 결과', text: `최종 기록: ${secs}초`, url: location.href };
+        if(navigator.share){
+          try { await navigator.share(payload); }
+          catch(e){ alert('공유가 취소되었거나 실패했습니다.'); }
+        } else {
+          try { await navigator.clipboard.writeText(`${payload.text}\n${payload.url}`); alert('최종 초와 링크를 클립보드에 복사했어요.'); }
+          catch(e){ prompt('아래 내용을 복사하세요:', `${payload.text}\n${payload.url}`); }
+        }
+      });
+    }
+
+    if(finalRestartBtn){
+      finalRestartBtn.addEventListener('click', ()=> btnRestart.click());
+    }
+
+    if(finalCloseBtn){
+      finalCloseBtn.addEventListener('click', ()=>{ if(resultEl) resultEl.style.display = 'none'; });
+      window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && resultEl && resultEl.style.display==='flex'){ resultEl.style.display='none'; } });
+    }
+    // ===== 세레모니 유틸: 컨테이너에 7x7 생성 및 애니메이션 =====
+    function buildCeremonyGrid(container){
+      const N = 7; const total = N*N;
+      const grid = document.createElement('div');
+      grid.className = 'ceremony-grid';
+      // 스케일 계산: 스테이지 폭에 맞춰 --size 설정
+      const cs = getComputedStyle(document.documentElement);
+      const gap = parseFloat(cs.getPropertyValue('--gap')) || 8;
+      const wrapWidth = (container.clientWidth || stagesEl.clientWidth || (window.innerWidth - 32));
+      const size = Math.max(32, Math.floor((wrapWidth - gap * (N - 1)) / N));
+      grid.style.setProperty('--size', size + 'px');
+
+      const faces = ['😠','😐','🙂'];
+      for(let i=0;i<total;i++){
+        const tile = document.createElement('div');
+        tile.className = 'ceremony-tile';
+        tile.textContent = faces[Math.floor(Math.random()*faces.length)];
+        grid.appendChild(tile);
+      }
+      container.appendChild(grid);
+
+      // 스태거 뒤집기
+      [...grid.children].forEach((tile, idx)=>{
+        const delay = 20 * idx; // 0.02s 간격
+        setTimeout(()=>{ tile.classList.add('flip'); tile.textContent = EMOJI_CELEB; }, delay);
+      });
+      return grid;
+    }
+
+    function runCeremonyInStageThenAwaitClick(){
+      // 스테이지 영역을 세레모니로 대체
+      const stageWrap = document.createElement('div');
+      stageWrap.className = 'stage';
+      stageWrap.dataset.index = STAGES.length - 1;
+      const h2 = document.createElement('h2'); h2.textContent = '축하합니다!';
+      stageWrap.appendChild(h2);
+      stagesEl.replaceChildren(stageWrap);
+
+      const grid = buildCeremonyGrid(stageWrap);
+
+      // 사용자 클릭 전까지 유지 → 첫 클릭 시 결과 표시
+      const onFirstClick = ()=>{
+        window.removeEventListener('click', onFirstClick, true);
+        showResult();
+      };
+      // 캡처 단계에서 잡아 확실히 1회만 처리
+      window.addEventListener('click', onFirstClick, true);
+
+      // 화면 회전/리사이즈 시 크기 재계산
+      const onResize = ()=>{
+        const cs = getComputedStyle(document.documentElement);
+        const gap = parseFloat(cs.getPropertyValue('--gap')) || 8;
+        const N = 7;
+        const wrapWidth = (stageWrap.clientWidth || stagesEl.clientWidth || (window.innerWidth - 32));
+        const size = Math.max(32, Math.floor((wrapWidth - gap * (N - 1)) / N));
+        grid.style.setProperty('--size', size + 'px');
+      };
+      window.addEventListener('resize', onResize, { passive: true });
+      window.addEventListener('orientationchange', ()=> setTimeout(onResize, 120), { passive: true });
+    }
+
+    // ===== 테스트: 세레모니 빌더 단위 테스트 =====
+    (function(){
+      try{
+        const temp = document.createElement('div');
+        temp.style.width = '420px';
+        const g = buildCeremonyGrid(temp);
+        console.assert(g.querySelectorAll('.ceremony-tile').length === 49, '세레모니 타일 수 49');
+      }catch(e){ console.warn('Ceremony unit test failed', e); }
+    })();
+
   </script>
 </body>
 </html>
