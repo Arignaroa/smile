@@ -451,7 +451,7 @@
       container.appendChild(grid);
 
       [...grid.children].forEach((tile, idx)=>{
-        const delay = 20 * idx; // 0.02s 간격
+        const delay = 200 * idx; // 0.2s 간격
         setTimeout(()=>{ tile.classList.add('flip'); tile.textContent = EMOJI_CELEB; }, delay);
       });
       return grid;
