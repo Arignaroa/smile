@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>이모지 찾기 — 모바일 단계진행 / 카운트다운 / 랜덤 방해 이모지</title>
+  <style>
+    :root { --gap: 8px; --size: 60px; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; margin: 0; padding: 56px 16px 128px; text-align: center; }
+    h1 { margin: 0 0 6px; font-size: 1.6rem; }
+    p.lead { margin: 0 0 18px; color: #444; }
+    .toolbar { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+    button { border: 1px solid #ccc; border-radius: 12px; padding: 10px 14px; background: #fff; cursor: pointer; font-weight: 600; }
+    button[disabled] { opacity: .5; cursor: not-allowed; }
+    .stage { margin: 18px auto; max-width: 900px; }
+    .stage h2 { margin: 8px 0; }
+    .grid { display: inline-grid; gap: var(--gap); margin-top: 8px; }
+    .cell { width: var(--size); height: var(--size); display: flex; align-items: center; justify-content: center; text-align: center; padding: 0; font-size: 38px; line-height: 1; border: 1px solid #ddd; border-radius: 14px; user-select: none; transition: transform .06s; touch-action: manipulation; }
+    .cell:active { transform: scale(.98); }
+    .note { font-size: .9rem; color: #666; margin-top: 6px; }
+    .status { margin-top: 14px; font-size: .95rem; color: #333; min-height: 24px; }
+    .ok { color: #087443; font-weight: 700; }
+    .err { color: #b00020; font-weight: 700; }
+    footer { position: fixed; left: 0; right: 0; bottom: 0; background: #fafafa; border-top: 1px solid #eee; padding: 10px 16px; }
+    .log { max-width: 980px; margin: 0 auto; text-align: left; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+
+    /* 오른쪽 상단 HUD 타이머 — 20% 확대 */
+    #hud { position: fixed; top: 8px; right: 8px; z-index: 10; background: rgba(255,255,255,.85); backdrop-filter: blur(6px); border: 1px solid #eee; border-radius: 12px; padding: 6px 10px; display: flex; align-items: center; gap: 10px; }
+    #timer { font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: .4px; font-size: 1.2em; }
+
+    /* 카운트다운 오버레이 */
+    #countdown { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.45); color: #fff; z-index: 20; }
+    #countdown span { font-size: 72px; font-weight: 900; text-shadow: 0 2px 12px rgba(0,0,0,.4); }
+
+    /* 오답 시 흔들림 효과 */
+    @keyframes shake { 0%{transform: translateX(0);} 25%{transform: translateX(-5px);} 50%{transform: translateX(5px);} 75%{transform: translateX(-3px);} 100%{transform: translateX(0);} }
+    .shake { animation: shake .28s ease both; }
+
+    @media (max-width: 400px){ :root{ --size: 56px; } #countdown span{ font-size: 56px; } }
+  </style>
+</head>
+<body>
+  <h1>웃는 이모지 한 칸만 찾기 😊</h1>
+  <p class="lead">규칙: 각 스테이지 그리드에서 <strong>단 1칸의 😊</strong>를 찾으세요. 나머지는 <strong>노란 화남(😠)과 무표정(😐)</strong>이 무작위 비율로 섞여 있습니다.</p>
+
+  <div id="hud" aria-live="polite" aria-label="진행 HUD">
+    <span>경과</span>
+    <span id="timer">00:00.0</span>
+  </div>
+
+  <div id="countdown"><span>3</span></div>
+
+  <div class="toolbar">
+    <button id="btn-start">시작</button>
+    <button id="btn-restart" disabled>새로 시작(섞기)</button>
+    <button id="btn-share" disabled>결과 공유</button>
+    <button id="btn-copy" disabled>결과 링크 복사</button>
+  </div>
+
+  <section id="stages"></section>
+
+  <div class="status" id="status">시작 버튼을 눌러주세요.</div>
+
+  <footer>
+    <div class="log" id="log" aria-live="polite"></div>
+  </footer>
+
+  <script>
+    // ===== 설정 =====
+    const STAGES = [
+      { n: 3, label: '1단계 (3×3)' },
+      { n: 4, label: '2단계 (4×4)' },
+      { n: 5, label: '3단계 (5×5)' },
+      { n: 6, label: '4단계 (6×6)' },
+      { n: 7, label: '5단계 (7×7)' },
+    ];
+
+    const EMOJI_ANGRY = '😠'; // 노란색 화남
+    const EMOJI_NEUTRAL = '😐';
+    const EMOJI_SMILE = '🙂'; // 빨간/분홍 볼터치 없는 미소
+
+    // ===== 시드 난수 (재현성 + 공유 링크) =====
+    function mulberry32(a){
+      return function(){
+        let t=a+=0x6D2B79F5; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296;
+      }
+    }
+    function strToSeed(str){ let h=2166136261>>>0; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
+
+    const url = new URL(location.href);
+    let seedParam = url.searchParams.get('seed');
+    if(!seedParam){
+      const rand = (crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint32Array(1))[0] : Math.floor(Math.random()*2**32);
+      seedParam = rand.toString(36);
+      const u = new URL(location.href); u.searchParams.set('seed', seedParam); history.replaceState(null, '', u);
+    }
+    const SEED = strToSeed(seedParam);
+    const rng = mulberry32(SEED);
+
+    function pickAnswerIndex(size){ const total = size*size; return Math.floor(rng()*total); }
+    const answers = STAGES.map(s=>pickAnswerIndex(s.n));
+
+    // 각 스테이지별 방해 이모지 비율(😠 비중) — 0.4 ~ 0.8 범위 랜덤
+    const distractorRatios = STAGES.map(()=> 0.4 + 0.4 * rng());
+
+    // ===== DOM 엘리먼트 =====
+    const stagesEl = document.getElementById('stages');
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('log');
+    const btnStart = document.getElementById('btn-start');
+    const btnRestart = document.getElementById('btn-restart');
+    const btnShare = document.getElementById('btn-share');
+    const btnCopy = document.getElementById('btn-copy');
+    const timerEl = document.getElementById('timer');
+    const countdownEl = document.getElementById('countdown');
+    const countdownNumEl = countdownEl.querySelector('span');
+
+    // 기록 구조
+    let runStart = null; // 시작 버튼을 누른 순간으로 설정
+    const records = []; // {stage, grid, clickedAt, clickedAtIso, durationMs}
+    let currentStage = 0; // 0부터 순차 진행
+
+    // ===== 타이머 =====
+    let timerId = null;
+    function fmtTimeMMSS(ms){
+      const total = Math.max(0, ms|0);
+      const m = Math.floor(total/60000);
+      const s = Math.floor((total%60000)/1000);
+      const d = Math.floor((total%1000)/100); // 0.1초 단위
+      const pad = n=>String(n).padStart(2,'0');
+      return `${pad(m)}:${pad(s)}.${d}`;
+    }
+    function startTimer(){
+      if(timerId) clearInterval(timerId);
+      runStart = Date.now();
+      timerId = setInterval(()=>{ timerEl.textContent = fmtTimeMMSS(Date.now() - runStart); }, 100);
+    }
+    function stopTimer(){ if(timerId) clearInterval(timerId); }
+
+    function fmtLocalWithMs(ts){ const d = new Date(ts); const pad = n=>String(n).padStart(2,'0'); const y=d.getFullYear(), m=pad(d.getMonth()+1), da=pad(d.getDate()); const h=pad(d.getHours()), mi=pad(d.getMinutes()), s=pad(d.getSeconds()); const ms=String(d.getMilliseconds()).padStart(3,'0'); return `${y}-${m}-${da} ${h}:${mi}:${s}.${ms}`; }
+
+    function writeLog(){
+      if(runStart===null){ logEl.textContent = ''; return; }
+      const head = `시드: ${seedParam}\n시작: ${fmtLocalWithMs(runStart)} (ISO: ${new Date(runStart).toISOString()})`;
+      const lines = records.map(r=>`- ${r.stage} — 클릭: ${fmtLocalWithMs(r.clickedAt)} (ISO: ${r.clickedAtIso}), 소요: ${r.durationMs}ms, 그리드 ${r.grid}칸`);
+      let tail = '';
+      if(records.length === STAGES.length){ const end = records[records.length-1].clickedAt; tail = `\n완료: ${fmtLocalWithMs(end)} (ISO: ${new Date(end).toISOString()})\n총 소요: ${end - runStart}ms`; }
+      logEl.textContent = [head, ...lines, tail].filter(Boolean).join('\n');
+    }
+
+    // ===== 스테이지 렌더 (버그 방지: 원자적 교체 + 재진입 가드) =====
+    function renderStage(idx){
+      if(idx < 0 || idx >= STAGES.length) return;
+      if(renderStage._busy) return; // 재진입 방지
+      renderStage._busy = true;
+      try {
+        const {n, label} = STAGES[idx];
+        const total = n*n; const answer = answers[idx];
+        const ratioAngry = distractorRatios[idx];
+
+        // DOM 구성 (가상 컨테이너에 먼저 구성한 뒤 교체)
+        const stageWrap = document.createElement('div'); stageWrap.className = 'stage'; stageWrap.dataset.index = idx;
+        const h2 = document.createElement('h2'); h2.textContent = label;
+        const grid = document.createElement('div'); grid.className = 'grid'; grid.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+
+        for(let i=0;i<total;i++){
+          const cell = document.createElement('button');
+          cell.type = 'button'; cell.className = 'cell';
+          cell.setAttribute('aria-label', i===answer ? '정답' : '오답');
+          if(i===answer){
+            cell.textContent = EMOJI_SMILE;
+          } else {
+            // 비정답: 비율에 따라 😠/😐 섞기 (시드 기반)
+            cell.textContent = (rng() < ratioAngry) ? EMOJI_ANGRY : EMOJI_NEUTRAL;
+          }
+          cell.addEventListener('click', ()=>{
+            if(i!==answer){
+              // 오답: 잠깐 흔들림
+              cell.classList.add('shake'); cell.disabled = true;
+              setTimeout(()=>{ cell.classList.remove('shake'); cell.disabled = false; }, 300);
+              statusEl.innerHTML = `<span class="err">오답! 다시 시도하세요.</span>`;
+              return;
+            }
+            // 정답 처리
+            const now = Date.now();
+            const rec = { stage: label, grid: `${n}×${n}`, clickedAt: now, clickedAtIso: new Date(now).toISOString(), durationMs: now - (records.length ? records[records.length-1].clickedAt : runStart) };
+            records.push(rec); writeLog();
+            statusEl.innerHTML = `<span class=\"ok\">통과!</span> 다음 스테이지로 이동합니다.`;
+            [...grid.children].forEach(c=>c.disabled = true);
+
+            currentStage++;
+            if(currentStage < STAGES.length){
+              spawnStage(currentStage);
+            } else {
+              statusEl.innerHTML = `<span class=\"ok\">축하합니다! 모든 스테이지를 완료했습니다.</span>`;
+              btnShare.disabled = false; btnCopy.disabled = false; stopTimer();
+              logEl.parentElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          });
+          grid.appendChild(cell);
+        }
+
+        const note = document.createElement('div'); note.className = 'note';
+        note.textContent = `총 ${total}칸: ${EMOJI_SMILE} 1개, 나머지 ${total-1}칸은 ${EMOJI_ANGRY}/${EMOJI_NEUTRAL} 랜덤`;
+
+        stageWrap.appendChild(h2); stageWrap.appendChild(grid); stageWrap.appendChild(note);
+
+        // 기존 컨텐츠를 원자적으로 교체 → 렌더 중간에 빈 화면 방지
+        stagesEl.replaceChildren(stageWrap);
+        stageWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // 진행 표시 및 뒤로가기 보호: 뒤로가면 완전 리셋
+        history.pushState({emoji:'v1', stage: idx}, '');
+      } finally {
+        renderStage._busy = false;
+      }
+    }
+
+    function spawnStage(idx){ renderStage(idx); }
+
+    // ===== 카운트다운 후 시작 =====
+    function runCountdownThenStart(){
+      let n = 3;
+      countdownNumEl.textContent = String(n);
+      countdownEl.style.display = 'flex';
+      btnStart.disabled = true; btnRestart.disabled = true; btnShare.disabled = true; btnCopy.disabled = true;
+      const iv = setInterval(()=>{
+        n--;
+        if(n>0){ countdownNumEl.textContent = String(n); }
+        else if(n===0){ countdownNumEl.textContent = '시작!'; }
+        else {
+          clearInterval(iv);
+          countdownEl.style.display = 'none';
+          // 히스토리 가드 세팅(뒤로가기=완전 리셋)
+          history.replaceState({emoji:'v1', stage: 'init'}, '');
+          history.pushState({emoji:'v1', guard:true}, '');
+          window.addEventListener('popstate', ()=>{
+            const rand = (crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint32Array(1))[0] : Math.floor(Math.random()*2**32);
+            const newSeed = rand.toString(36);
+            const u = new URL(location.href); u.searchParams.set('seed', newSeed); location.replace(u);
+          }, { once: true });
+
+          statusEl.textContent = '';
+          startTimer(); writeLog(); spawnStage(0);
+          btnRestart.disabled = false; // 시작 후 재시작 가능
+
+          // ===== 콘솔 진단 테스트 (UI 없음) =====
+          setTimeout(runSelfTests, 350);
+        }
+      }, 1000);
+    }
+
+    // ===== 시작/재시작/공유 =====
+    btnStart.addEventListener('click', ()=>{
+      if(runStart!==null) return; // 이미 시작됨
+      runCountdownThenStart();
+    });
+
+    btnRestart.addEventListener('click', ()=>{
+      const rand = (crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint32Array(1))[0] : Math.floor(Math.random()*2**32);
+      const newSeed = rand.toString(36);
+      const u = new URL(location.href); u.searchParams.set('seed', newSeed); location.href = u.toString();
+    });
+
+    async function makeShareText(){ const title = '이모지 찾기 결과'; const text = logEl.textContent.trim(); const shareUrl = new URL(location.href); return { title, text, url: shareUrl.toString() }; }
+
+    btnShare.addEventListener('click', async ()=>{
+      const payload = await makeShareText();
+      if(navigator.share){ try { await navigator.share(payload); } catch(e){ alert('공유가 취소되었거나 실패했습니다.'); } }
+      else { alert('이 브라우저는 시스템 공유를 지원하지 않습니다. "결과 링크 복사"를 사용하세요.'); }
+    });
+
+    btnCopy.addEventListener('click', async ()=>{
+      try { await navigator.clipboard.writeText(location.href); btnCopy.textContent = '복사됨!'; setTimeout(()=>btnCopy.textContent='결과 링크 복사', 1400); }
+      catch(e){ prompt('클립보드 접근이 제한되어 수동 복사를 사용합니다. 아래 링크 전체를 복사하세요:', location.href); }
+    });
+
+    // ===== 콘솔용 간단 테스트 (UI X) =====
+    function runSelfTests(){
+      try {
+        console.assert(Array.isArray(STAGES) && STAGES.length === 5, 'STAGES 길이=5');
+        const stage = document.querySelector('.stage');
+        console.assert(!!stage, '현재 스테이지 1개 표시');
+        const grid = document.querySelector('.grid');
+        const n = STAGES[currentStage]?.n || 3;
+        console.assert(grid && grid.children.length === n*n, '그리드 칸 수 n*n');
+        const cells = [...grid.children];
+        const smiles = cells.filter(c=>c.textContent===EMOJI_SMILE).length;
+        const others = cells.filter(c=>c.textContent!==EMOJI_SMILE);
+        console.assert(smiles === 1, '🙂 1개');
+        console.assert(others.every(c=>c.textContent===EMOJI_ANGRY || c.textContent===EMOJI_NEUTRAL), '나머지 😠/😐');
+        const t0 = document.getElementById('timer').textContent;
+        setTimeout(()=>{ const t1 = document.getElementById('timer').textContent; console.assert(t0 !== t1, '타이머 증가'); }, 300);
+      } catch(e){ console.warn('SelfTests 실패:', e); }
+    }
+  </script>
+</body>
+</html>
