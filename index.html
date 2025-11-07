@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>투게더 미소 의식</title>
-  <meta name="description" content="😠😐이 속삭인다. 단 하나의 🙂를 찾아 봉인을 해제하라." />
+  <meta name="description" content="😠😐이 속삭인다. 🙂를 찾아 봉인을 해제하라." />
   <meta property="og:title" content="투게더 미소 의식" />
-  <meta property="og:description" content="😠😐이 속삭인다. 단 하나의 🙂를 찾아 봉인을 해제하라." />
+  <meta property="og:description" content="😠😐이 속삭인다. 🙂를 찾아 봉인을 해제하라." />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="투게더 미소 의식" />
-  <meta name="twitter:description" content="😠😐이 속삭인다. 단 하나의 🙂를 찾아 봉인을 해제하라." />
+  <meta name="twitter:description" content="😠😐이 속삭인다. 🙂를 찾아 봉인을 해제하라." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
@@ -150,6 +150,7 @@
     #name-modal input{width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:var(--fg);font-weight:600}
     #name-modal .actions{display:flex;gap:8px;padding:14px 18px 18px;border-top:1px solid rgba(255,255,255,.08)}
     #name-modal .actions button{flex:1 1 auto}
+  .credits{margin-top:24px;color:var(--muted);font-family:'Noto Serif KR',serif;font-size:clamp(12px,2.4vw,14px);letter-spacing:.2px;opacity:.85}
   </style>
 </head>
 <body>
@@ -159,8 +160,8 @@
   <div class="flicker" id="flicker" aria-hidden="true"></div>
 
   <h1 data-glitch="투게더 미소 의식 🙂">투게더 미소 의식 🙂</h1>
-  <div class="subtitle" aria-label="부제">생각토론 3파트</div>
-  <p class="lead">😠😐이 속삭인다. 단 하나의 🙂를 찾아 <strong>봉인을 해제하라</strong>.</p>
+  
+  <p class="lead">😠😐이 속삭인다. 🙂를 찾아 <strong>봉인을 해제하라</strong>.</p>
 
   <div id="hud" aria-live="polite" aria-label="의식 진행 HUD">
     <span>의식 경과</span>
@@ -217,6 +218,8 @@
   <footer>
     <div class="log" id="log" aria-live="polite"></div>
   </footer>
+
+  <div class="credits" aria-label="부제">생각토론 3파트</div>
 
   <script>
     // ===== 게임 구성 =====
