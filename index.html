@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>숨은 미소가 나를 보고 있다 🙂 — 공포 테마 에디션</title>
-  <meta name="description" content="한 칸의 미소를 찾아라. 웃지 않으면… 다른 표정들이 따라온다." />
+  <title>투게더 미소 의식 🙂 — 생각토론 3파트</title>
+  <meta name="description" content="😠😐이 쫓아온다. 단 하나의 미소를 찾아 봉인을 완성하라." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
@@ -32,21 +32,21 @@
         radial-gradient(1200px 800px at 50% 24%, rgba(255,47,85,.04), transparent 60%),
         #060709;
       color: var(--fg);
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Serif KR", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
     .grain{ pointer-events:none; position:fixed; inset:0; opacity:.07; background-image:url('data:image/svg+xml;utf8,\
-    <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"160\" height=\"160\" viewBox=\"0 0 40 40\">\
-      <filter id=\"n\"><feTurbulence type=\"fractalNoise\" baseFrequency=\"0.9\" numOctaves=\"2\" stitchTiles=\"stitch\"/></filter>\
-      <rect width=\"100%\" height=\"100%\" filter=\"url(%23n)\" opacity=\"0.9\"/>\
+    <svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 40 40">\
+      <filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/></filter>\
+      <rect width="100%" height="100%" filter="url(%23n)" opacity="0.9"/>\
     </svg>'); mix-blend-mode:overlay; animation: grain 12s steps(12) infinite; z-index: 1; }
     .scan{ pointer-events:none; position:fixed; inset:0; background: repeating-linear-gradient(0deg, rgba(255,255,255,.06) 0 1px, transparent 1px 3px); opacity:.05; z-index:0 }
     @keyframes grain{ 0%{transform:translate(0,0)} 100%{transform:translate(-40px,-40px)} }
     .fog, .fog::after, .fog::before{ position:fixed; inset:-20% -40%; pointer-events:none; }
     .fog{ z-index:0; background: radial-gradient(40% 25% at 10% 30%, rgba(255,255,255,.03), transparent 60%), radial-gradient(35% 25% at 80% 70%, rgba(255,255,255,.025), transparent 60%); filter: blur(12px); animation: fog-move 120s linear infinite; }
-    .fog::after{ content:\"\"; background: radial-gradient(30% 20% at 70% 40%, rgba(255,255,255,.025), transparent 60%); filter: blur(18px); animation: fog-move 100s linear reverse infinite; }
-    .fog::before{ content:\"\"; background: radial-gradient(35% 22% at 30% 80%, rgba(255,255,255,.02), transparent 60%); filter: blur(16px); animation: fog-move 140s linear infinite; }
+    .fog::after{ content:""; background: radial-gradient(30% 20% at 70% 40%, rgba(255,255,255,.025), transparent 60%); filter: blur(18px); animation: fog-move 100s linear reverse infinite; }
+    .fog::before{ content:""; background: radial-gradient(35% 22% at 30% 80%, rgba(255,255,255,.02), transparent 60%); filter: blur(16px); animation: fog-move 140s linear infinite; }
     @keyframes fog-move{ to{ transform: translate3d(-4%, -2%, 0) scale(1.06) } }
     .flicker{ position:fixed; inset:0; background: radial-gradient(circle at 50% 60%, rgba(255,47,85,.08), transparent 40%), rgba(0,0,0,.82); mix-blend-mode: multiply; opacity:0; pointer-events:none; z-index:5; transition: opacity .18s ease; }
     h1 {
@@ -141,11 +141,11 @@
   <div class="fog" aria-hidden="true"></div>
   <div class="flicker" id="flicker" aria-hidden="true"></div>
 
-  <h1 data-glitch="숨은 미소가 나를 보고 있다 🙂">숨은 미소가 나를 보고 있다 🙂</h1>
-  <p class="lead">규칙: 각 스테이지에서 <strong>단 1개의 🙂</strong>를 찾으세요. 빨리 찾지 않으면<strong>(😠)과 (😐)</strong>이 당신을 계속 쫓아옵니다.</p>
+  <h1 data-glitch="숨은 미소 의식 🙂">숨은 미소 의식 🙂</h1>
+  <p class="lead">계율: 각 의식마다 <strong>오직 하나의 🙂 표식</strong>을 찾아 봉인을 맞춘다. 주저하면 <strong>(😠)과 (😐)</strong>의 속삭임이 너를 잠식한다.</p>
 
-  <div id="hud" aria-live="polite" aria-label="진행 HUD">
-    <span>경과</span>
+  <div id="hud" aria-live="polite" aria-label="의식 진행 HUD">
+    <span>의식 경과</span>
     <span id="timer">00:00.0</span>
   </div>
 
@@ -156,26 +156,26 @@
   </div>
 
   <div class="toolbar">
-    <button id="btn-start">시작</button>
-    <button id="btn-restart" disabled>새로 시작(섞기)</button>
+    <button id="btn-start">의식 시작</button>
+    <button id="btn-restart" disabled>의식 재개(섞기)</button>
   </div>
 
   <section id="stages"></section>
 
-  <div class="status" id="status">시작 버튼을 눌러주세요.</div>
+  <div class="status" id="status">제단 앞에 서라. 준비되었으면 의식을 개시하라.</div>
 
   <div id="result" role="dialog" aria-modal="true" aria-labelledby="result-title" aria-describedby="result-pre" style="display:none;">
     <div class="result-card">
       <header>
-        <h2 id="result-title">최종 기록</h2>
+        <h2 id="result-title">의식의 기록</h2>
       </header>
       <div class="result-body">
         <div class="result-summary" id="result-summary"></div>
         <pre class="result-pre" id="result-pre"></pre>
       </div>
       <div class="result-actions">
-        <button id="final-share">공유</button>
-        <button id="final-restart">다시 도전</button>
+        <button id="final-share">계율 전파(공유)</button>
+        <button id="final-restart">의식 다시 시작</button>
         <button id="final-close" aria-label="닫기">닫기</button>
       </div>
     </div>
@@ -187,11 +187,11 @@
 
   <script>
     const STAGES = [
-      { n: 3, label: '1단계 (3×3)' },
-      { n: 4, label: '2단계 (4×4)' },
-      { n: 5, label: '3단계 (5×5)' },
-      { n: 6, label: '4단계 (6×6)' },
-      { n: 7, label: '5단계 (7×7)' },
+      { n: 3, label: '제1의 봉인 — 3×3' },
+      { n: 4, label: '제2의 봉인 — 4×4' },
+      { n: 5, label: '제3의 봉인 — 5×5' },
+      { n: 6, label: '제4의 봉인 — 6×6' },
+      { n: 7, label: '제5의 봉인 — 7×7' },
     ];
 
     const EMOJI_ANGRY = '😠';
@@ -297,21 +297,21 @@
         for(let i=0;i<total;i++){
           const cell = document.createElement('button');
           cell.type = 'button'; cell.className = 'cell';
-          cell.setAttribute('aria-label', i===answer ? '정답' : '오답');
+          cell.setAttribute('aria-label', i===answer ? '정답' : '금지의 표식');
           cell.textContent = (i===answer) ? EMOJI_SMILE : ((rng() < ratioAngry) ? EMOJI_ANGRY : EMOJI_NEUTRAL);
           cell.addEventListener('click', ()=>{
             if(i!==answer){
               cell.classList.add('shake'); cell.disabled = true;
               setTimeout(()=>{ cell.classList.remove('shake'); cell.disabled = false; }, 300);
-              statusEl.innerHTML = `<span class="err">오답! 다시 시도하세요… (그들이 가까워져요)</span>`;
-              if (navigator.vibrate) try{ navigator.vibrate(30); }catch(_){}
+              statusEl.innerHTML = `<span class="err">금지의 표식! 다시 정렬하라… (속삭임이 다가온다)</span>`;
+              if (navigator.vibrate) try{ navigator.vibrate(30); }catch(_){ }
               flash();
               return;
             }
             const now = Date.now();
             const rec = { stage: label, grid: `${n}×${n}`, clickedAt: now, clickedAtIso: new Date(now).toISOString(), durationMs: now - (records.length ? records[records.length-1].clickedAt : runStart) };
             records.push(rec); writeLog();
-            statusEl.innerHTML = `<span class=\"ok\">통과!</span> 다음 스테이지로 이동합니다.`;
+            statusEl.innerHTML = `<span class=\"ok\">봉인 해제.</span> 다음 의식으로 이동한다.`;
             [...grid.children].forEach(c=>c.disabled = true);
 
             currentStage++;
@@ -319,7 +319,7 @@
               spawnStage(currentStage);
             } else {
               stopTimer();
-              statusEl.innerHTML = `<span class=\"ok\">축하합니다! 모든 스테이지를 완료했습니다.</span> 기록을 확인하고 공유해보세요.`;
+              statusEl.innerHTML = `<span class=\"ok\">의식 종료. 모든 봉인이 풀렸다.</span> 기록을 확인하고 계율을 전파하라.`;
               runCeremonyInStageThenAutoShow();
             }
           });
@@ -327,7 +327,7 @@
         }
 
         const note = document.createElement('div'); note.className = 'note';
-        note.textContent = `총 ${total}칸: 🙂 1개, 나머지 ${total-1}칸은 😠/😐 랜덤`;
+        note.textContent = `총 ${total}칸: 성스러운 표식 🙂 1개, 나머지는 금지의 표식(😠/😐)`;
 
         stageWrap.appendChild(h2); stageWrap.appendChild(grid); stageWrap.appendChild(note);
 
@@ -350,7 +350,7 @@
       const iv = setInterval(()=>{
         n--;
         if(n>0){ countdownNumEl.textContent = String(n); }
-        else if(n===0){ countdownNumEl.textContent = '시작!'; }
+        else if(n===0){ countdownNumEl.textContent = '개시'; }
         else {
           clearInterval(iv);
           countdownEl.style.display = 'none';
@@ -416,6 +416,13 @@
         console.assert(formatSecs(2500) === '2.50', 'formatSecs(2500) → 2.50');
         console.assert(typeof buildShareUrl === 'function', 'buildShareUrl 함수');
         console.assert(!buildShareUrl().includes('seed='), '공유 URL에는 seed 없음');
+        // 추가 테스트들
+        const hudLabel = document.querySelector('#hud span');
+        console.assert(hudLabel && hudLabel.textContent.trim() === '의식 경과', 'HUD 라벨이 의식 경과여야 함');
+        console.assert(document.title.includes('봉인 에디션'), '문서 제목에 봉인 에디션 포함');
+        const resultTitle = document.getElementById('result-title');
+        console.assert(resultTitle && /의식의 기록/.test(resultTitle.textContent), '결과 타이틀 확인');
+        console.assert(typeof spawnStage === 'function', 'spawnStage 함수 존재');
       } catch(e){ console.warn('SelfTests 실패:', e); }
     }
 
@@ -431,6 +438,7 @@
     function buildSummaryHtml(){
       const totalMs = (records.length ? records[records.length-1].clickedAt - runStart : 0) || 0;
       const secs = formatSecs(totalMs);
+      // 테스트 호환: 순수 초 문자열만 반환
       return `${secs}초`;
     }
     function showResult(){
@@ -447,7 +455,7 @@
       const totalMs = (records.length ? records[records.length-1].clickedAt - runStart : 0) || 0;
       const secs = formatSecs(totalMs);
       const shareUrl = buildShareUrl();
-      const payload = { title: '숨은 미소 — 결과', text: `최종 기록: ${secs}초`, url: shareUrl };
+      const payload = { title: '숨은 미소 의식 — 기록', text: `의식 소요: ${secs}초`, url: shareUrl };
       if (navigator.share) {
         navigator.share(payload).catch(()=>{});
       } else {
@@ -497,7 +505,7 @@
       const stageWrap = document.createElement('div');
       stageWrap.className = 'stage';
       stageWrap.dataset.index = STAGES.length - 1;
-      const h2 = document.createElement('h2'); h2.textContent = '축하합니다!';
+      const h2 = document.createElement('h2'); h2.textContent = '모든 봉인이 해제되었다.';
       stageWrap.appendChild(h2);
       stagesEl.replaceChildren(stageWrap);
 
