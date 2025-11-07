@@ -3,8 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>투게더 미소 의식 🙂 — 생각토론 3파트</title>
-  <meta name="description" content="😠😐이 속삭인다. 단 하나의 미소를 찾아 의식을 완성하라." />
+  <title>투게더 미소 의식</title>
+  <meta name="description" content="😠😐이 속삭인다. 단 하나의 🙂를 찾아 봉인을 해제하라." />
+  <meta property="og:title" content="투게더 미소 의식" />
+  <meta property="og:description" content="😠😐이 속삭인다. 단 하나의 🙂를 찾아 봉인을 해제하라." />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="투게더 미소 의식" />
+  <meta name="twitter:description" content="😠😐이 속삭인다. 단 하나의 🙂를 찾아 봉인을 해제하라." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
@@ -133,6 +138,18 @@
     .ceremony-grid{ display: grid; gap: var(--gap); grid-template-columns: repeat(7, 1fr); margin: 12px auto 0; width: 100%; }
     .ceremony-tile{ width: var(--size); height: var(--size); display:flex; align-items:center; justify-content:center; font-size: calc(var(--size) * 0.66); background: var(--card); border:1px solid rgba(255,255,255,.08); border-radius:14px; transition: transform .25s ease; box-shadow: var(--shadow); }
     .ceremony-tile.flip{ transform: scale(1.06); }
+    .subtitle{margin-top:6px;color:var(--muted);font-family:'Noto Serif KR',serif;font-size:clamp(14px,3vw,18px);letter-spacing:.2px;font-weight:600}
+
+    /* 이름 입력 모달 */
+    #name-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);z-index:45;padding:20px}
+    #name-modal .card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.015)),var(--card);backdrop-filter:blur(8px) saturate(1.05);border:1px solid rgba(255,255,255,.10);border-radius:16px;max-width:520px;width:100%;box-shadow:var(--shadow);overflow:hidden}
+    #name-modal header{padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+    #name-modal header h2{margin:0;font-size:1.2rem;font-family:'Noto Serif KR',serif;color:#ffdfe6}
+    #name-modal .body{padding:16px 18px;text-align:left}
+    #name-modal label{display:block;margin-bottom:8px;font-family:'Noto Serif KR',serif;color:#dde7f0}
+    #name-modal input{width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:var(--fg);font-weight:600}
+    #name-modal .actions{display:flex;gap:8px;padding:14px 18px 18px;border-top:1px solid rgba(255,255,255,.08)}
+    #name-modal .actions button{flex:1 1 auto}
   </style>
 </head>
 <body>
@@ -141,8 +158,9 @@
   <div class="fog" aria-hidden="true"></div>
   <div class="flicker" id="flicker" aria-hidden="true"></div>
 
-  <h1 data-glitch="숨은 미소 의식 🙂">숨은 미소 의식 🙂</h1>
-  <p class="lead">계율: 각 의식마다 <strong>오직 하나의 🙂 표식</strong>을 찾아 봉인을 맞춘다. 주저하면 <strong>(😠)과 (😐)</strong>의 속삭임이 너를 잠식한다.</p>
+  <h1 data-glitch="투게더 미소 의식 🙂">투게더 미소 의식 🙂</h1>
+  <div class="subtitle" aria-label="부제">생각토론 3파트</div>
+  <p class="lead">😠😐이 속삭인다. 단 하나의 🙂를 찾아 <strong>봉인을 해제하라</strong>.</p>
 
   <div id="hud" aria-live="polite" aria-label="의식 진행 HUD">
     <span>의식 경과</span>
@@ -153,6 +171,21 @@
 
   <div id="ceremony" aria-hidden="true">
     <div class="tiles" id="ceremony-tiles"></div>
+  </div>
+
+  <div id="name-modal" role="dialog" aria-modal="true" aria-labelledby="name-title" aria-describedby="name-desc">
+    <div class="card">
+      <header><h2 id="name-title">서약자의 호명을 남겨라</h2></header>
+      <div class="body">
+        <p id="name-desc" class="note">의식의 기록에 남길 명칭입니다. 실제 이름이 아니라도 됩니다.</p>
+        <label for="ritual-name">서약자</label>
+        <input id="ritual-name" type="text" maxlength="32" placeholder="예: 무명 서약자" />
+      </div>
+      <div class="actions">
+        <button id="name-cancel">나중에</button>
+        <button id="name-confirm">시작</button>
+      </div>
+    </div>
   </div>
 
   <div class="toolbar">
@@ -186,6 +219,7 @@
   </footer>
 
   <script>
+    // ===== 게임 구성 =====
     const STAGES = [
       { n: 3, label: '제1의 봉인 — 3×3' },
       { n: 4, label: '제2의 봉인 — 4×4' },
@@ -199,6 +233,10 @@
     const EMOJI_SMILE = '🙂';
     const EMOJI_CELEB = '😊';
 
+    // 참가자(서약자) 이름 보관 키
+    const NAME_KEY = 'RITUAL_NAME';
+
+    // ===== RNG =====
     function mulberry32(a){
       return function(){
         let t=a+=0x6D2B79F5; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296;
@@ -220,6 +258,7 @@
     const answers = STAGES.map(s=>pickAnswerIndex(s.n));
     const distractorRatios = STAGES.map(()=> 0.4 + 0.4 * rng());
 
+    // ===== DOM =====
     const stagesEl = document.getElementById('stages');
     const statusEl = document.getElementById('status');
     const logEl = document.getElementById('log');
@@ -234,11 +273,17 @@
     const finalShareBtn = document.getElementById('final-share');
     const finalRestartBtn = document.getElementById('final-restart');
     const finalCloseBtn = document.getElementById('final-close');
+    const nameModal = document.getElementById('name-modal');
+    const nameInput = document.getElementById('ritual-name');
+    const nameConfirmBtn = document.getElementById('name-confirm');
+    const nameCancelBtn = document.getElementById('name-cancel');
 
+    // ===== 상태 =====
     let runStart = null;
     const records = [];
     let currentStage = 0;
 
+    // ===== 타이머 =====
     let timerId = null;
     function fmtTimeMMSS(ms){
       const total = Math.max(0, ms|0);
@@ -255,6 +300,13 @@
     }
     function stopTimer(){ if(timerId) clearInterval(timerId); }
 
+    // ===== 이름 유틸 =====
+    function getSeoyakja(){ try { return (localStorage.getItem(NAME_KEY) || '').trim(); } catch(_) { return ''; } }
+    function setSeoyakja(v){ try { localStorage.setItem(NAME_KEY, (v||'').trim()); } catch(_){} }
+    function openNameModal(){ if(!nameModal) return; nameModal.style.display='flex'; const cached=getSeoyakja(); if(nameInput){ nameInput.value=cached || ''; setTimeout(()=> nameInput.focus(), 50);} }
+    function closeNameModal(){ if(!nameModal) return; nameModal.style.display='none'; }
+
+    // ===== 유틸 =====
     function fmtLocalWithMs(ts){ const d = new Date(ts); const pad = n=>String(n).padStart(2,'0'); const y=d.getFullYear(), m=pad(d.getMonth()+1), da=pad(d.getDate()); const h=pad(d.getHours()), mi=pad(d.getMinutes()), s=pad(d.getSeconds()); const ms=String(d.getMilliseconds()).padStart(3,'0'); return `${y}-${m}-${da} ${h}:${mi}:${s}.${ms}`; }
 
     function writeLog(){
@@ -281,6 +333,7 @@
     const flicker = document.getElementById('flicker');
     function flash(){ if(!flicker) return; flicker.style.opacity = 1; setTimeout(()=> flicker.style.opacity = 0, 120); }
 
+    // ===== 렌더링 =====
     function renderStage(idx){
       if(idx < 0 || idx >= STAGES.length) return;
       if(renderStage._busy) return;
@@ -304,7 +357,7 @@
               cell.classList.add('shake'); cell.disabled = true;
               setTimeout(()=>{ cell.classList.remove('shake'); cell.disabled = false; }, 300);
               statusEl.innerHTML = `<span class="err">금지의 표식! 다시 정렬하라… (속삭임이 다가온다)</span>`;
-              if (navigator.vibrate) try{ navigator.vibrate(30); }catch(_){ }
+              if (navigator.vibrate) { try{ navigator.vibrate(30); }catch(_){} }
               flash();
               return;
             }
@@ -342,6 +395,7 @@
 
     function spawnStage(idx){ renderStage(idx); }
 
+    // ===== 플로우 =====
     function runCountdownThenStart(){
       let n = 3;
       countdownNumEl.textContent = String(n);
@@ -378,9 +432,10 @@
       }, 1000);
     }
 
-    btnStart.addEventListener('click', ()=>{
+    // 매 게임마다 이름을 받는다 (항상 모달 표시)
+    btnStart.addEventListener('click', () => {
       if(runStart!==null) return;
-      runCountdownThenStart();
+      openNameModal();
     });
 
     btnRestart.addEventListener('click', ()=>{
@@ -389,6 +444,7 @@
       const u = new URL(location.href); u.searchParams.set('seed', newSeed); location.href = u.toString();
     });
 
+    // ===== 테스트 =====
     function runSelfTests(){
       try {
         console.assert(Array.isArray(STAGES) && STAGES.length === 5, 'STAGES 길이=5');
@@ -416,10 +472,15 @@
         console.assert(formatSecs(2500) === '2.50', 'formatSecs(2500) → 2.50');
         console.assert(typeof buildShareUrl === 'function', 'buildShareUrl 함수');
         console.assert(!buildShareUrl().includes('seed='), '공유 URL에는 seed 없음');
-        // 추가 테스트들
+        // 추가 테스트: 이름 입력 모달/필드
+        const nm = document.getElementById('name-modal');
+        console.assert(!!nm, '이름 입력 모달 존재해야 함');
+        const nmInput = document.getElementById('ritual-name');
+        console.assert(!!nmInput && nmInput.getAttribute('maxlength')==='32', '이름 입력 제한 32자');
+        // 추가 테스트: HUD 라벨/타이틀/결과 타이틀
         const hudLabel = document.querySelector('#hud span');
         console.assert(hudLabel && hudLabel.textContent.trim() === '의식 경과', 'HUD 라벨이 의식 경과여야 함');
-        console.assert(document.title.includes('봉인 에디션'), '문서 제목에 봉인 에디션 포함');
+        console.assert(document.title.includes('투게더 미소 의식'), '문서 제목 갱신 확인');
         const resultTitle = document.getElementById('result-title');
         console.assert(resultTitle && /의식의 기록/.test(resultTitle.textContent), '결과 타이틀 확인');
         console.assert(typeof spawnStage === 'function', 'spawnStage 함수 존재');
@@ -443,7 +504,16 @@
     }
     function showResult(){
       if(resultSummaryEl) resultSummaryEl.textContent = buildSummaryHtml();
-      if(resultPre) resultPre.style.display = 'none';
+      if(resultPre){
+        const name = getSeoyakja() || '무명 서약자';
+        const lines = [
+          `서약자: ${name}`,
+          `기록: ${buildSummaryHtml()}`,
+          `시드: ${seedParam}`,
+        ];
+        resultPre.textContent = lines.join('\n');
+        resultPre.style.display = 'block';
+      }
       if(resultEl){ resultEl.style.display = 'flex'; setTimeout(()=>{ finalShareBtn && finalShareBtn.focus(); }, 40); }
     }
     function buildShareUrl(){
@@ -455,7 +525,8 @@
       const totalMs = (records.length ? records[records.length-1].clickedAt - runStart : 0) || 0;
       const secs = formatSecs(totalMs);
       const shareUrl = buildShareUrl();
-      const payload = { title: '숨은 미소 의식 — 기록', text: `의식 소요: ${secs}초`, url: shareUrl };
+      const name = getSeoyakja() || '무명 서약자';
+      const payload = { title: '투게더 미소 의식', text: `서약자: ${name} | 의식 소요: ${secs}초`, url: shareUrl };
       if (navigator.share) {
         navigator.share(payload).catch(()=>{});
       } else {
@@ -476,6 +547,25 @@
       window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && resultEl && resultEl.style.display==='flex'){ resultEl.style.display='none'; } });
     }
 
+    if(nameConfirmBtn){
+      nameConfirmBtn.addEventListener('click', ()=>{
+        let v = (nameInput?.value || '').trim();
+        if(!v) v = '무명 서약자';
+        if(v.length>32) v = v.slice(0,32);
+        setSeoyakja(v);
+        closeNameModal();
+        if(runStart===null) runCountdownThenStart();
+      });
+    }
+    if(nameCancelBtn){
+      nameCancelBtn.addEventListener('click', ()=>{
+        if(!getSeoyakja()) setSeoyakja('무명 서약자');
+        closeNameModal();
+        if(runStart===null) runCountdownThenStart();
+      });
+    }
+
+    // ===== 세레모니 =====
     function buildCeremonyGrid(container){
       const N = 7; const total = N*N;
       const grid = document.createElement('div');
@@ -500,7 +590,6 @@
       return grid;
     }
 
-    // 변경점: 클릭 대기 없이 애니메이션 완료 + 1초 뒤 자동 팝업
     function runCeremonyInStageThenAutoShow(){
       const stageWrap = document.createElement('div');
       stageWrap.className = 'stage';
@@ -518,9 +607,7 @@
       const extraDelay = 1000;   // ms (요청사항: 애니메이션 끝나고 1초 뒤)
       const totalTime = perDelay * (totalTiles - 1) + flipDuration + extraDelay;
 
-      setTimeout(()=>{
-        showResult();
-      }, totalTime);
+      setTimeout(()=>{ showResult(); }, totalTime);
 
       const onResize = ()=>{
         const cs = getComputedStyle(document.documentElement);
@@ -534,6 +621,7 @@
       window.addEventListener('orientationchange', ()=> setTimeout(onResize, 120), { passive: true });
     }
 
+    // 세레모니 타일 수 테스트
     (function(){
       try{
         const temp = document.createElement('div');
@@ -543,9 +631,10 @@
       }catch(e){ console.warn('Ceremony unit test failed', e); }
     })();
 
+    // 헤더 글리치 주기적 리셋
     setInterval(()=>{
       const h1 = document.querySelector('h1');
-      h1.style.animation = 'none'; void h1.offsetWidth; h1.style.animation = '';
+      if(!h1) return; h1.style.animation = 'none'; void h1.offsetWidth; h1.style.animation = '';
     }, 8000 + Math.random()*8000);
   </script>
 </body>
